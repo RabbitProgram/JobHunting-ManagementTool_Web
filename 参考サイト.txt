@@ -1,0 +1,59 @@
+﻿【 参考サイト 】
+・FireStore：https://www.flutter-study.dev/firebase/cloud-firestore-try
+・CloudStorage：https://qiita.com/kazutxt/items/de764db4c9ffb2ee935a
+・グリッド表示：https://flutter.ctrnost.com/layout/body/grid/
+・画面遷移：https://flutter.ctrnost.com/basic/routing/
+・画像の丸型ボタン：https://muchilog.com/flutter-circle-image-button/
+　　→RaisedButtonは非推奨になったためElevatedButtonを使用
+・ドロワー表示：https://flutter.keicode.com/basics/drawer.php
+　　→右から出てくるようにするには「endDrawer:」を使用
+・プロフィール画像を表示するドロワーレイアウト：https://dev.classmethod.jp/articles/intro_flutter_widget_drawer/
+・ドロワー表示ボタンの作り方：https://is.gd/OjxCHX
+・ドロワーアイテムにアイコンを表示：https://note.com/hatchoutschool/n/n617c687576fb
+・画像表示（アプリ内フォルダーから・URLから）：https://qiita.com/yu124choco/items/a2710ec004d3425a2a0b
+・画面下にウィジェットを配置：https://qiita.com/daigou26/items/93395bfe699d5c77c66a
+　　→（https://is.gd/UP8bEl）
+・SHA256ハッシュ化：https://pub.dev/packages/crypto
+・ファイル選択（拡張子指定可能）：https://pub.dev/packages/file_picker
+・表（DataTable）：https://capytaku.com/flutter-datatable-with-singlechildscrollview/
+・DataTableの行線色を変更：https://www.debugcn.com/ja/article/50311225.html
+・DataTableの行をタップしたときの動作を設定：https://newbedev.com/flutter-datatable-tap-on-row
+・TextFieldに入力した内容を取得できるように変数に代入する：https://sysrigar.com/2019/03/23/flutterテキストボックス入力値を画面上に即時反映す/
+　　→（入力検知もここでできる）
+・TextField入力時にカーソルの位置がおかしくなる不具合の対処方法：https://qiita.com/kurararara/items/b59ff3f8d6a2ce416220
+・URLを開く：https://qiita.com/superman9387/items/868ce6ad60b3c177bff1
+・ドロップダウンリスト：https://dtpscriptin.com/flutter-dropdownbutton/
+・Appbar左上の戻るボタンをカスタマイズする：https://qiita.com/sunagakuuun/items/1c6fb0dd0e50d8e8deb6
+・initState()内でawaitを使う：https://note.com/hatchoutschool/n/n82dda16a47dc
+・Widgetのサイズを指定する（SizedBox）：https://gakogako.com/flutter_sizedbox/#toc2
+・区切り線（Divider）：https://api.flutter.dev/flutter/material/Divider-class.html
+・公開環境での実行時のGoogle認証エラーの対処方法：https://qiita.com/kenken1981/items/9d738687c5cfb453be19
+　　→エラー文：PlatformException(idpiframe_initialization_failed, Not a valid origin for the client: https://rabbitprogram.com has not been registered for client ID
+　　→1つの「OAuth 2.0 クライアント ID」につき使えるポートは1つだけ
+　　　（テスト用の任意設定ポートと、公開ポート80のURLは同時に指定できないから、もう一つIDを作成する）
+・Flutter Web 公開環境でCORSのエラーが出てCloudStorage上の画像が表示できないことについて：https://stackoverflow.com/questions/65849071/flutter-firebase-storage-cors-issue
+　　→CORS設定に使うjsonの内容や設定方法について：https://daiiz.hatenablog.com/entry/2017/03/05/001700
+・
+・
+・
+
+
+
+【 CloudStorageのCORS設定（Flutter WebでCloudStorage似アップロードした画像などを表示できるようにする） 】
+・環境の導入（初回のみ）
+参考サイト：https://dev.classmethod.jp/articles/install-google-cloud-sdk-in-mac-osx/
+macでのパスの通し方：https://qiita.com/nbkn/items/01a11392921119fa0153
+
+・GCPログイン
+gcloud init
+
+・設定を適用
+gsutil cors set /Users/hayato/development/gs-cors-settings.json gs://｛CloudStorageに表示されているURLを入力｝.appspot.com
+
+・現在の設定を確認（設定内容がターミナルに表示されればOK）
+gsutil cors get gs://｛CloudStorageに表示されているURLを入力｝.appspot.com
+
+※GCPのgcloud・gsutilなどのコマンドの場所
+/Users/hayato/development/google-cloud-sdk/bin/
+
+

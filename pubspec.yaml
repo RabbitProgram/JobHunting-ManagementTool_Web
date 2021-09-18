@@ -39,7 +39,7 @@ dependencies:
   firebase_core: ^1.6.0
   firebase_auth: ^3.1.0
   firebase_storage: ^10.0.3
-  cloud_firestore: ^2.5.2
+  cloud_firestore: ^2.5.3
   google_sign_in: ^5.1.0
   flutter_signin_button: ^2.0.0  #サインインボタン用
   universal_platform: ^1.0.0+1  #Web判定用
@@ -47,6 +47,9 @@ dependencies:
   file_picker: ^4.0.3  #画像取り込み用
   #image_picker: ^0.8.4+1
   crypto: ^3.0.1  #ハッシュ化用
+  http: ^0.13.3  #APIリクエスト用
+  url_launcher: ^6.0.10  #URLを開く
+
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.

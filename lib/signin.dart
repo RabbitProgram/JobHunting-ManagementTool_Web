@@ -71,7 +71,11 @@ class SigninPageState extends State<SigninPage> {
                                       await Utils.SignIn_Google();
                                   loginUser = userCredential.user;
                                 } on Exception catch (e) {
+                                  //エラーの場合
                                   loginUser = null;
+                                  Toasts.ErrorToast_Show(context,
+                                      "サインイン時にエラーが発生しました\n", Icons.warning);
+                                  print("エラー：" + e.toString());
                                 }
 
                                 //ローディングアニメーションを非表示
@@ -79,13 +83,9 @@ class SigninPageState extends State<SigninPage> {
                                   _isVisibleLoading = false;
                                 });
 
-                                if (loginUser == null) {
-                                  //エラーの場合
-                                  Toasts.ErrorToast_Show(context,
-                                      "サインイン時にエラーが発生しました", Icons.warning);
-                                } else {
+                                if (loginUser != null) {
                                   Toasts.SafeToast_Show(
-                                      context, "サインインしました", Icons.info_outline);
+                                      context, "サインインしました", Icons.check);
 
                                   //メイン画面に移動
                                   Navigator.pushReplacement(

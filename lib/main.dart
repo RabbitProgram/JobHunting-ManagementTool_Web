@@ -1,6 +1,6 @@
 import 'dart:math';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
@@ -8,15 +8,17 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_web_plugins/flutter_web_plugins.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:jobhunting_managementtool/signin.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import 'Toasts.dart';
+import 'CompanyData.dart';
 import 'Utils.dart';
+import 'edit.dart';
 import 'overlay_loading_molecules.dart';
 
 String AppTitle = "就活管理ツール for Web";
-final auth = FirebaseAuth.instance;
-final storage = FirebaseStorage.instance;
-final GoogleSignIn googleSignIn = GoogleSignIn();
+var auth = FirebaseAuth.instance;
+var storage = FirebaseStorage.instance;
+GoogleSignIn googleSignIn = GoogleSignIn();
 User? loginUser = null; //ログイン中のアカウント情報（ログインしていない場合はnull）
 Random rand = new Random(); //乱数生成用
 
@@ -25,10 +27,10 @@ Random rand = new Random(); //乱数生成用
 //アカウント名　　：(loginUser?.displayName).toString()
 //メールアドレス　：(loginUser?.email).toString()
 
-Future<void> main() async {
-  /*Firebase用の次の2文は、index.htmlに記入済みのため不要
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();*/
+void main() {
+  //Firebase用の次の2文は、index.htmlに記入済みのため不要
+  //WidgetsFlutterBinding.ensureInitialized();
+  //Firebase.initializeApp();
 
   setUrlStrategy(PathUrlStrategy());
 
@@ -66,12 +68,13 @@ class MainPage extends StatefulWidget {
 class MainPageState extends State<MainPage> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   bool _isVisibleLoading = true; //ローディングアニメーション表示
+  List<CompanyData> companyList = []; //登録済みの企業情報
 
   @override
   void initState() {
     super.initState();
 
-    auth.authStateChanges().listen((User? u) {
+    auth.authStateChanges().listen((User? u) async {
       if (u == null) {
         //ログアウトした場合 or 起動時にログインしていない状態だった場合→サインイン画面に移動
         loginUser = null;
@@ -80,14 +83,25 @@ class MainPageState extends State<MainPage> {
             MaterialPageRoute(
               builder: (context) => SigninPage(),
             ));
-        print("ログインしていません");
+        //print("ログインしていません");
+
       } else {
         //ログインした場合 or 起動時にログイン済みの状態だった場合
         loginUser = auth.currentUser;
-        print("ログインしました：" + (loginUser?.displayName).toString());
+        //print("ログインしました：" + (loginUser?.displayName).toString());
 
         //データ読み込み
+        companyList = [];
+        final snapshot = await FirebaseFirestore.instance
+            .collection((loginUser?.email).toString())
+            .get();
+        for (var now in snapshot.docs) {
+          CompanyData temp = new CompanyData.Set(now.id, now["name"],
+              now["state"], now["address"], now["homepageURL"]);
+          temp.logoURL = await Utils.GetLogoURL(now.id);
 
+          companyList.add(temp);
+        }
       }
 
       //表示を更新
@@ -109,60 +123,14 @@ class MainPageState extends State<MainPage> {
           style: TextStyle(color: Colors.black87),
         ),
         actions: <Widget>[
-          IconButton(
-            icon: Icon(
-              Icons.upload_file,
-              color: Colors.pink,
-            ),
-            tooltip: "アップロードテスト",
-            onPressed: () => setState(() async {
-              //try {
-              FilePickerResult? result = await FilePicker.platform.pickFiles(
-                type: FileType.custom,
-                allowedExtensions: ['jpg', 'jpeg', 'png'],
-              );
-
-              if (result != null) {
-                PlatformFile file = result.files.first;
-                //ファイルサイズ（単位はbyte）：file.size
-
-                if ((file.size / 1024 / 1024) > 5) {
-                  //画像サイズが5MBより大きい場合
-                  Toasts.ErrorToast_Show(
-                      context, "画像サイズが5MBを超えているためアップロードできません", Icons.warning);
-                  return;
-                }
-
-                //ローディングアニメーションを表示
-                setState(() {
-                  _isVisibleLoading = true;
-                });
-
-                //企業ID生成
-                String companyID = Utils.toSHA256("data" +
-                    DateTime.now().toString() +
-                    rand.nextInt(1000).toString());
-
-                //アップロード
-                await storage
-                    .ref("logo/$companyID.${file.extension}")
-                    .putData(file.bytes!);
-
-                Toasts.SafeToast_Show(
-                    context, "画像をアップロードしました", Icons.info_outline);
-              }
-              /*} catch (e) {
-                Toasts.ErrorToast_Show(
-                    context, "エラーが発生しました\n" + e.toString(), Icons.warning);
-                print(e.toString());
-              }*/
-
-              //ローディングアニメーションを非表示
-              setState(() {
-                _isVisibleLoading = false;
-              });
-            }),
-          ),
+          /*IconButton(
+              icon: Icon(
+                Icons.cloud,
+                color: Colors.pink,
+              ),
+              tooltip: "CloudStore",
+              onPressed: () async {}),*/
+          //アカウントのプロフィール画像を表示するボタン
           (loginUser == null)
               ? Container()
               : Padding(
@@ -197,45 +165,83 @@ class MainPageState extends State<MainPage> {
           fit: StackFit.expand,
           overflow: Overflow.clip,
           children: <Widget>[
-            SingleChildScrollView(
-                scrollDirection: Axis.vertical,
-                child: Theme(
-                    data: Theme.of(context).copyWith(
-                      dividerColor: Colors.pink,
-                    ),
-                    child: DataTable(
-                      showCheckboxColumn: false, //チェックボックスを表示しない
-                      dataRowHeight: 116,
-                      columns: <DataColumn>[
-                        DataColumn(label: Text('ロゴ')),
-                        DataColumn(label: Text('企業名')),
-                        DataColumn(label: Text('開始')),
-                        DataColumn(label: Text('終了')),
-                        DataColumn(label: Text('その他')),
-                      ],
-                      rows: <DataRow>[
-                        DataRow(
-                          cells: <DataCell>[
-                            DataCell(Padding(
-                              padding:
-                                  const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                              child: Image.network(
-                                  "https://cdn.akamai.steamstatic.com/steam/apps/965470/header.jpg?t=1593155030",
-                                  height: 100.0,
-                                  width: 200.0,
-                                  fit: BoxFit.cover),
-                            )),
-                            DataCell(Text('月')),
-                            DataCell(Text('9:00')),
-                            DataCell(Text('18:00')),
-                            DataCell(Text('dummy')),
-                          ],
-                          onSelectChanged: (newValue) {
-                            print('row 1 pressed');
+            (companyList.length == 0)
+                ? Center(
+                    child: Text(
+                    "右下のボタンを押して企業を登録してください",
+                    style: TextStyle(color: Colors.black54),
+                  ))
+                : SingleChildScrollView(
+                    scrollDirection: Axis.vertical,
+                    child: Theme(
+                      data: Theme.of(context).copyWith(
+                          //dividerColor: Colors.pink,
+                          ),
+                      child: DataTable(
+                        showCheckboxColumn: false, //チェックボックスを表示しない
+                        dataRowHeight: 116,
+                        columns: <DataColumn>[
+                          DataColumn(label: Text('ロゴ')),
+                          DataColumn(label: Text('企業名')),
+                          DataColumn(label: Text('現在の状態')),
+                        ],
+                        rows: List.generate(
+                          companyList.length,
+                          (index) {
+                            return DataRow(
+                              cells: <DataCell>[
+                                DataCell(Padding(
+                                  padding: const EdgeInsets.only(
+                                      top: 8.0, bottom: 8.0),
+                                  child:
+                                      (companyList[index].logoURL.length == 0)
+                                          ? Image.asset('images/noimage.png',
+                                              height: 100.0,
+                                              width: 200.0,
+                                              fit: BoxFit.contain)
+                                          : Image.network(
+                                              companyList[index].logoURL,
+                                              height: 100.0,
+                                              width: 200.0,
+                                              fit: BoxFit.contain),
+                                )),
+                                DataCell(Text(companyList[index].name)),
+                                DataCell(Text(
+                                  Utils.State_to_String(
+                                      companyList[index].state),
+                                  style: TextStyle(
+                                      fontSize: 20,
+                                      backgroundColor: Utils.State_to_Color(
+                                          companyList[index].state)),
+                                )),
+                              ],
+                              onSelectChanged: (newValue) async {
+                                //編集画面に移動
+                                CompanyData data = await Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => new EditPage(
+                                        data: companyList[index],
+                                      ),
+                                    ));
+
+                                //戻ってきたらここが実行される
+                                if (data.id == "-1") {
+                                  //削除された場合
+                                  companyList.removeAt(index);
+                                } else if (data.id.length != 0) {
+                                  //1回以上保存した場合→リストを更新して表示を更新
+                                  companyList[index] = data;
+                                }
+
+                                setState(() {});
+                              },
+                            );
                           },
                         ),
-                      ],
-                    ))),
+                      ),
+                    ),
+                  ),
             /*GridView.count(
               crossAxisCount: 3,
               children: List.generate(50, (index) {
@@ -252,6 +258,31 @@ class MainPageState extends State<MainPage> {
           ],
         ),
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          //編集画面に移動
+          CompanyData data = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => new EditPage(
+                  data: new CompanyData(),
+                ),
+              ));
+
+          //戻ってきたらここが実行される
+          if (data.id == "-1") {
+            //新規登録後に続けて削除された場合→何もしない
+
+          } else if (data.id.length != 0) {
+            //1回以上保存した場合→リストに追加して表示を更新
+            companyList.add(data);
+          }
+
+          setState(() {});
+        },
+        label: Text('新規登録'),
+        icon: Icon(Icons.add),
+      ),
       //右から出てくるドロワー
       endDrawer: Drawer(
         child: ListView(
@@ -265,6 +296,22 @@ class MainPageState extends State<MainPage> {
               ),
             ),
             ListTile(
+              title: Text('作者のホームページを開く'),
+              leading: Icon(Icons.public),
+              onTap: () async {
+                Navigator.pop(context);
+
+                String url = "https://rabbitprogram.com/";
+                if (await canLaunch(url)) {
+                  await launch(url);
+                }
+              },
+            ),
+            //区切り線
+            Divider(
+              thickness: 1.25, //厚み
+            ),
+            ListTile(
               title: Text("サインアウト"),
               leading: Icon(Icons.logout),
               onTap: () {
@@ -272,34 +319,6 @@ class MainPageState extends State<MainPage> {
 
                 //サインアウト
                 Utils.SignOut(context);
-              },
-            ),
-            ListTile(
-              title: Text('Honolulu'),
-              onTap: () {
-                print("ここに動作を入力");
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Dallas'),
-              onTap: () {
-                print("ここに動作を入力");
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Seattle'),
-              onTap: () {
-                print("ここに動作を入力");
-                Navigator.pop(context);
-              },
-            ),
-            ListTile(
-              title: Text('Tokyo'),
-              onTap: () {
-                print("ここに動作を入力");
-                Navigator.pop(context);
               },
             ),
           ],
